@@ -16,6 +16,14 @@ reconcilable projection.
 - **History**: paginated statement, counts and totals, ledger balance as of a date
 - Events, `wallet:process-scheduled`, `wallet:reconcile`
 
+## Install
+
+```bash
+composer require hsemix/laravanced-wallet
+php artisan migrate
+php artisan vendor:publish --tag=wallet-config   # optional
+```
+
 ## Testing
 
 ```bash
