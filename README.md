@@ -135,6 +135,43 @@ Wallet::scheduled()->schedule([
 Payment types are addressed as `"account_type.transfer_type"`. `from` / `to` accept an `Account`,
 an owner model, `'system'`, or an account id.
 
+### Idempotent payments
+
+Pass an `idempotency_key` (max 100 chars; e.g. the client's request id) so a retried request can never pay twice:
+
+```php
+$ann->payTo($bob, 'wallet.transfer', 40, 'rent', idempotencyKey: $requestId);
+Wallet::pay([... 'idempotency_key' => $requestId]);
+```
+
+A repeat returns the original transaction (`$tx->wasRecentlyCreated === false`), even if the payer's balance is
+no longer enough for a fresh payment. Reusing a key for a different payer-to-payee/type/amount throws
+`IdempotencyConflictException`. Keys are scoped per paying account and enforced by a unique index, so two
+simultaneous identical requests also resolve to one payment. Not applied to scheduled payments or chargebacks
+(a second chargeback is already refused).
+
+### Immutable ledger
+
+Transfers cannot be updated or deleted through Eloquent (`ImmutableRecordException`); correct mistakes with
+`chargeback()`. This does not stop raw SQL or bulk query updates, so for a hard guarantee withhold
+`UPDATE`/`DELETE` on `wallet_transfers` from the application's database user.
+
+### Scheduling
+
+```php
+// app/Console/Kernel.php (or routes/console.php on Laravel 11+)
+$schedule->command('wallet:process-scheduled')->daily();
+$schedule->command('wallet:reconcile')->dailyAt('03:00');
+```
+
+`processDue()` catches up on missed days and is idempotent.
+
+### Events
+
+`PaymentPerformed`, `PaymentPending`, `PaymentDenied`, `PaymentCancelled`, `PaymentChargedBack`,
+`InstallmentProcessed`, `InstallmentFailed` — dispatched after the database transaction commits.
+Use them for notifications (`notify_payment_received` / `notify_payment_sender` flags are stored on the type).
+
 ## Testing
 
 ```bash
