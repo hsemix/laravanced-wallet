@@ -8,9 +8,13 @@
         "ledger",
         "accounting",
         "payments",
-        "double-entry"
+        "double-entry",
+        "Advanced Wallet",
+        "multi-account",
+        "account types",
+        "transfer types"
     ],
-    "homepage": "https://github.com/hsemix/laravanced-wallet",
+    "homepage": "https://hsemix.github.io/laravanced-wallet",
     "license": "MIT",
     "type": "library",
     "authors": [
