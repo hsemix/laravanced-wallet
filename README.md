@@ -84,7 +84,8 @@ Wallet::transferTypes()->create([
 Wallet::fees()->create([
     'name' => 'Transfer fee', 
     'internal_name' => 'transfer_fee',
-    'transfer_type' => 'wallet.transfer', 'generated_transfer_type' => 'wallet.fee',
+    'transfer_type' => 'wallet.transfer', 
+    'generated_transfer_type' => 'wallet.fee',
     'charge_mode' => 'percentage', 
     'amount' => 1.5, 
     'payer' => 'source', 
