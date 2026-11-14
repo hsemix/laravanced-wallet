@@ -172,6 +172,15 @@ $schedule->command('wallet:reconcile')->dailyAt('03:00');
 `InstallmentProcessed`, `InstallmentFailed` — dispatched after the database transaction commits.
 Use them for notifications (`notify_payment_received` / `notify_payment_sender` flags are stored on the type).
 
+## Behaviour notes
+
+- `credit_limit` on an account is a positive overdraft allowance: `balance - reserved >= -credit_limit`. Unlimited system accounts skip the check.
+- Balance rows are locked with `SELECT … FOR UPDATE` in account-id order; per-account net movement is applied once per transaction, so a fee funded by the same payment never causes a false "insufficient funds".
+- Period limits refuse a payment that would *exceed* the limit.
+- A `deduct_amount` fee is always funded by the source from the payment itself (the payer setting is ignored).
+- Fee bounds are `min_amount` / `max_amount` (inclusive, either optional) instead of `lower_than_amount_value` / `higher_than_amount_value`.
+- Not ported: groups, products, authorization levels, transfer status flows and filters (user-management concerns, not accounting).
+
 ## Testing
 
 ```bash
