@@ -179,7 +179,6 @@ Use them for notifications (`notify_payment_received` / `notify_payment_sender` 
 - Period limits refuse a payment that would *exceed* the limit.
 - A `deduct_amount` fee is always funded by the source from the payment itself (the payer setting is ignored).
 - Fee bounds are `min_amount` / `max_amount` (inclusive, either optional) instead of `lower_than_amount_value` / `higher_than_amount_value`.
-- Not ported: groups, products, authorization levels, transfer status flows and filters (user-management concerns, not accounting).
 
 ## Testing
 
