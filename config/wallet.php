@@ -25,8 +25,8 @@ return [
     'account_number_length' => 6,
 
     /*
-    | Most payment requests a single payer account may have open at once (null = unlimited).
-    | Worth setting when a transfer type uses reserve_on_payment_request.
+    | Maximum number of open payment requests allowed per payer account (leave null for unlimited). 
+    | Recommended when using transfer types with reserve_on_payment_request enabled
     */
     'max_open_requests_per_payer' => null,
 
