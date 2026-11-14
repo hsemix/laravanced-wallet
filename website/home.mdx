@@ -1,0 +1,38 @@
+---
+title: Laravanced Wallet
+editUrl: https://github.com/hsemix/laravanced-wallet/edit/main/website/home.mdx
+description: A double-entry, multi-account wallet for Laravel with transfer types, fees, authorization, chargebacks, payment requests and scheduled payments.
+template: splash
+hero:
+  tagline: A double-entry wallet for Laravel. Money moves between accounts through configurable transfer types, and every movement is an immutable entry in a ledger.
+  image:
+    file: ../../assets/logo.svg
+  actions:
+    - text: Get started
+      link: /laravanced-wallet/getting-started/
+      icon: right-arrow
+    - text: Concepts
+      link: /laravanced-wallet/concepts/
+      variant: minimal
+    - text: GitHub
+      link: https://github.com/hsemix/laravanced-wallet
+      variant: minimal
+      icon: external
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid stagger>
+  <Card title="A real ledger" icon="open-book">
+    Immutable transfers between accounts, a cached balance you can reconcile against them, and exact four-decimal money.
+  </Card>
+  <Card title="Rules per transfer type" icon="setting">
+    Limits per payment and per period, fixed or percentage fees (even fees on fees), and a preview that matches what is booked.
+  </Card>
+  <Card title="Approvals and reversals" icon="approve-check">
+    Pending payments that reserve funds, chargebacks with time windows, and payment requests, with you deciding who may act.
+  </Card>
+  <Card title="Safe under load" icon="rocket">
+    Row locking, idempotency keys, and concurrency checks against MySQL for overspend, deadlocks and double actions.
+  </Card>
+</CardGrid>

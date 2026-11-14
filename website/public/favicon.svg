@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 464 464" width="464" height="464">
+  <!-- Two balanced ledger columns with a transfer arrow between them. -->
+  <defs>
+    <linearGradient id="bg" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#14a37f"/>
+      <stop offset="1" stop-color="#064634"/>
+    </linearGradient>
+  </defs>
+  <rect width="464" height="464" rx="104" fill="url(#bg)"/>
+  <rect x="84" y="96" width="120" height="272" rx="18" fill="#fff" fill-opacity="0.95"/>
+  <rect x="260" y="96" width="120" height="272" rx="18" fill="#fff" fill-opacity="0.95"/>
+  <g fill="#0a7d60"><rect x="106" y="126" width="76" height="14" rx="7"/><rect x="106" y="162" width="52" height="14" rx="7"/><rect x="282" y="126" width="76" height="14" rx="7"/><rect x="282" y="162" width="52" height="14" rx="7"/></g>
+  <path d="M176 280h112m0 0l-34-34m34 34l-34 34" fill="none" stroke="#ffd166" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

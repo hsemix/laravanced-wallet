@@ -1,0 +1,12 @@
+/* Ledger green, from the logo. */
+:root {
+  --sl-color-accent-low: #0b3b30;
+  --sl-color-accent: #14a37f;
+  --sl-color-accent-high: #a8ecd8;
+}
+:root[data-theme="light"] {
+  --sl-color-accent-low: #cdf3e7;
+  --sl-color-accent: #0a7d60;
+  --sl-color-accent-high: #064634;
+}
+.hero img { filter: drop-shadow(0 12px 28px rgba(4, 50, 38, 0.4)); }
