@@ -21,6 +21,8 @@ foreach (range(1, 6) as $i) {
     $acc = $u->openAccount('wallet');
     Wallet::pay(['from' => 'system', 'to' => $u, 'type' => 'treasury.deposit', 'amount' => $i === 1 ? 100 : 1000]);
 }
+$t->create(['name' => 'Capped', 'internal_name' => 'capped', 'from_account_type' => 'wallet', 'to_account_type' => 'wallet', 'max_amount_per_day' => 100]);
+$t->create(['name' => 'Counted', 'internal_name' => 'counted', 'from_account_type' => 'wallet', 'to_account_type' => 'wallet', 'max_transfers_per_day' => 3]);
 $t->create(['name' => 'Approved', 'internal_name' => 'approved', 'from_account_type' => 'wallet', 'to_account_type' => 'wallet', 'requires_authorization' => true]);
 $u = User::orderBy('id')->get();
 Wallet::pay(['from' => $u[2], 'to' => $u[3], 'type' => 'wallet.transfer', 'amount' => '50', 'description' => 'CB-TARGET']);

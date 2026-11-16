@@ -94,4 +94,4 @@ helpers (`bootstrapLedger()`, `funded()`, `assertMoney()`).
 
 ## Concurrency checks (MySQL)
 
-The PHPUnit suite is single-process SQLite, so it can't exercise row locking. `tests/Concurrency/` has opt-in scripts that run parallel PHP workers against a disposable MySQL database (overspend, opposing transfers, shared idempotency key, double chargeback, authorize-vs-deny). See `tests/Concurrency/README.md`.
+The PHPUnit suite is single-process SQLite, so it can't exercise row locking. `tests/Concurrency/` has opt-in scripts that run parallel PHP workers against a disposable MySQL database (overspend, opposing transfers, shared idempotency key, double chargeback, authorize-vs-deny, day-limit and transfer-count-limit races). See `tests/Concurrency/README.md`.

@@ -36,7 +36,7 @@ All booleans must be real booleans (`true`/`false`), numbers must be non-negativ
 | Option | Effect |
 |---|---|
 | `min_amount`, `max_amount` | Per-payment bounds (inclusive). `min_amount` must not exceed `max_amount`. |
-| `max_amount_per_day` / `_week` / `_month` | Total that may be paid in the period, including this payment. |
+| `max_amount_per_day` / `_week` / `_month` | Total that may be paid in the period, including this payment. Exact under concurrency: simultaneous payments from one account queue up on its balance row, so two payments of 70 against a daily cap of 100 book one, never both. |
 | `max_transfers_per_day` / `_week` / `_month` | Number of payments allowed in the period, including this one. |
 
 A payment that would take a period **past** a limit throws `LimitExceededException`; exactly reaching the limit is allowed.

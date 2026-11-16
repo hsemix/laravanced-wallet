@@ -54,8 +54,9 @@ Runs `Wallet::scheduled()->processDue()` and prints `Processed N installment(s),
 php artisan wallet:reconcile [--account=ID] [--fix]
 ```
 
-Compares each account's cached balance with the ledger. Prints drifted accounts. Exit code 1 if any drifted
-(and `--fix` not given). With `--fix`, rewrites drifted rows from the ledger and exits 0.
+Compares each account's cached balance with the ledger, and its cached `reserved` total with the holds still open
+(pending authorizations, scheduled payments, payment requests that reserve funds). Prints drifted accounts and what differs.
+Exit code 1 if any drifted (and `--fix` not given). With `--fix`, rewrites drifted rows from the ledger and the open holds and exits 0.
 
 ## Scheduler
 
