@@ -25,6 +25,8 @@ final class PaymentRequest
         public readonly ?Model $by = null,
         public readonly array $meta = [],
         public readonly ?string $idempotencyKey = null,
+        /** Internal: skip the sufficient-funds check (account fees that may overdraw). Not accepted from array input. */
+        public readonly bool $allowOverdraft = false,
     ) {}
 
     public static function from(array|self $input): self

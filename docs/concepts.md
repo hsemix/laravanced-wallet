@@ -20,6 +20,7 @@ Transaction (one business operation: status, who, why)
 | **Transfer type** | A permitted kind of movement from one account type to another, with rules (limits, authorization, scheduling…). Addressed as `"account_type.transfer_type"`, e.g. `wallet.transfer`. |
 | **Transfer fee** | A rule on a transfer type that generates an extra transfer (the fee) whenever a payment matches. |
 | **Transaction** | One operation: a payment, a chargeback, or a scheduled payment. Has a UUID `reference`, a status and an optional idempotency key. |
+| **Account fee** | A fee on the account itself, charged when it opens or on a schedule. See [Account fees](account-fees.md). |
 | **Transfer** | One ledger entry: amount, from account, to account. Immutable. A payment with two fees produces three transfers. |
 
 ## Transfer kinds

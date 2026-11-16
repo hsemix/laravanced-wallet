@@ -10,6 +10,7 @@ optionally generating **fees**; every movement is an immutable **transfer** in a
 | [Account types & accounts](accounts.md) | Creating and finding accounts, system accounts, credit limits, account numbers |
 | [Transfer types](transfer-types.md) | Every option: limits, authorization, scheduling, interest |
 | [Fees](fees.md) | Fixed / percentage fees, ranges, who pays, deducted fees, fees on fees |
+| [Account fees](account-fees.md) | Fees on the account itself: when it opens, or recurring (maintenance) |
 | [Payments](payments.md) | `perform`, `preview`, addressing accounts, limits, idempotency |
 | [Authorization](authorization.md) | Pending payments, `authorize` / `deny` / `cancel` |
 | [Chargebacks](chargebacks.md) | Reversing a payment, one transfer, or forcing it |

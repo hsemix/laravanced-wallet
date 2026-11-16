@@ -6,6 +6,7 @@ namespace Hsemix\AdvancedWallet;
 
 use Hsemix\AdvancedWallet\Console\ProcessScheduledPaymentsCommand;
 use Hsemix\AdvancedWallet\Console\ReconcileBalancesCommand;
+use Hsemix\AdvancedWallet\Services\AccountFeeService;
 use Hsemix\AdvancedWallet\Services\AccountService;
 use Hsemix\AdvancedWallet\Services\BalancePostingService;
 use Hsemix\AdvancedWallet\Services\HistoryService;
@@ -38,6 +39,7 @@ class WalletServiceProvider extends PackageServiceProvider
                 '2026_01_04_000000_create_wallet_payment_requests',
                 '2026_01_05_000000_add_reservation_to_wallet_payment_requests',
                 '2026_01_06_000000_add_chargeback_rules_to_wallet_transfer_types',
+                '2026_01_07_000000_create_wallet_account_fees',
             ])
             ->runsMigrations();
     }
@@ -46,6 +48,7 @@ class WalletServiceProvider extends PackageServiceProvider
     {
         foreach (
             [
+                AccountFeeService::class,
                 AccountService::class,
                 BalancePostingService::class,
                 HistoryService::class,

@@ -15,6 +15,7 @@ never see rolled-back payments. Namespace `Hsemix\AdvancedWallet\Events`.
 | `PaymentChargedBack` | `original`, `chargeback` | `chargeback()` |
 | `InstallmentProcessed` | `installment` | An installment was paid (including the immediate first one) |
 | `InstallmentFailed` | `installment` | An installment failed for lack of funds |
+| `AccountFeeCharged` / `AccountFeeSkipped` | `charge` (an `AccountFeeCharge`) | An [account fee](account-fees.md) was collected / forgiven for lack of funds |
 
 `PaymentPerformed` is **not** fired for installments (use `InstallmentProcessed`) or for chargebacks (`PaymentChargedBack`).
 
@@ -45,7 +46,7 @@ Registered when `config('wallet.commands')` is true (default).
 php artisan wallet:process-scheduled [--date=YYYY-MM-DD]
 ```
 
-Runs `Wallet::scheduled()->processDue()` and prints `Processed N installment(s), M failed, K deferred.` Then expires overdue [payment requests](payment-requests.md) (`Expired N payment request(s).`, always based on the current time, not `--date`). Always exits 0.
+Runs `Wallet::scheduled()->processDue()` and prints `Processed N installment(s), M failed, K deferred.` Then collects due [account fees](account-fees.md) (`Account fees: N charged, M skipped, K waived, P pending.`) and expires overdue [payment requests](payment-requests.md) (`Expired N payment request(s).`, always based on the current time, not `--date`). Always exits 0.
 
 ### `wallet:reconcile`
 

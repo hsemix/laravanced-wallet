@@ -16,7 +16,7 @@ const branch = process.env.REPO_BRANCH ?? "main";
 // Sidebar groups, in reading order (slugs are file names in docs/ without .md). docs/README.md is published as "overview".
 const GROUPS = [
   ["Start here", ["overview", "getting-started", "concepts"]],
-  ["Ledger setup", ["accounts", "transfer-types", "fees"]],
+  ["Ledger setup", ["accounts", "transfer-types", "fees", "account-fees"]],
   ["Payments", ["payments", "authorization", "payment-requests", "chargebacks", "scheduled-payments"]],
   ["Operating it", ["balances-and-history", "events-and-commands", "errors", "testing"]],
   ["Reference", ["reference"]],

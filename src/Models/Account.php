@@ -21,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property string $credit_limit
  * @property Carbon|null $negative_since
  * @property bool $active
+ * @property bool $fees_waived
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property AccountType $accountType
@@ -32,6 +33,7 @@ class Account extends WalletModel
 
     protected $casts = [
         'active' => 'boolean',
+        'fees_waived' => 'boolean',
         'negative_since' => 'datetime',
     ];
 
