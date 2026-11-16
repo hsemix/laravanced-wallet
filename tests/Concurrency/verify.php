@@ -24,6 +24,12 @@ foreach (Account::with('accountType')->get() as $a) {
     }
 }
 echo "accounts drifted: $drift\nsum of all balances (must be 0): $sum\nnegative user accounts: ".(count($neg) ? implode(',', $neg) : 'none')."\n";
+foreach (['capped' => 'amount', 'counted' => 'count'] as $name => $what) {
+    $type = Wallet::transferTypes()->resolve("wallet.$name");
+    $q = Transfer::where('transfer_type_id', $type->id)->whereNull('parent_id');
+    echo "booked on wallet.$name today: ".$q->count().' transfers, '.Money::round((string) $q->sum('amount'))
+        .' total (limit: '.($what === 'amount' ? Money::round($type->max_amount_per_day) : $type->max_transfers_per_day.' transfers').")\n";
+}
 echo 'transactions: '.Transaction::count().' transfers: '.Transfer::count()."\n";
 foreach (Account::whereHas('accountType', fn ($q) => $q->where('internal_name', 'wallet'))->with('owner')->get() as $a) {
     echo "  acct {$a->id}: ".Wallet::accounts()->balance($a)->balance."\n";

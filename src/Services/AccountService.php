@@ -6,6 +6,7 @@ namespace Hsemix\AdvancedWallet\Services;
 
 use Carbon\CarbonInterface;
 use Hsemix\AdvancedWallet\Enums\AccountKind;
+use Hsemix\AdvancedWallet\Enums\PaymentRequestStatus;
 use Hsemix\AdvancedWallet\Exceptions\DuplicateRecordException;
 use Hsemix\AdvancedWallet\Exceptions\InvalidAccountException;
 use Hsemix\AdvancedWallet\Exceptions\InvalidAccountTypeException;
@@ -14,6 +15,7 @@ use Hsemix\AdvancedWallet\Exceptions\MissingParameterException;
 use Hsemix\AdvancedWallet\Models\Account;
 use Hsemix\AdvancedWallet\Models\AccountBalance;
 use Hsemix\AdvancedWallet\Models\AccountType;
+use Hsemix\AdvancedWallet\Models\MoneyRequest;
 use Hsemix\AdvancedWallet\Models\Transaction;
 use Hsemix\AdvancedWallet\Models\Transfer;
 use Hsemix\AdvancedWallet\Support\BalanceSummary;
@@ -224,15 +226,31 @@ class AccountService
         return Money::round(Money::sub((string) $credits, (string) $debits));
     }
 
-    /** Rebuild the projection row from the ledger and open reservations. */
+    /**
+     * The money this account should have on hold, rebuilt from the holds that are still open: pending
+     * authorizations and open scheduled payments (held on their transaction) and open payment requests that
+     * reserve funds (held on the request). Anything that places a hold must be counted here, or reconcile()
+     * would silently release it.
+     */
+    public function ledgerReserved(Account $account): string
+    {
+        $transactions = Transaction::where('from_account_id', $account->id)
+            ->whereIn('status', ['pending', 'open'])->sum('reserved_amount');
+
+        $requests = MoneyRequest::where('from_account_id', $account->id)
+            ->where('status', PaymentRequestStatus::Requested->value)->sum('reserved_amount');
+
+        return Money::round(Money::add((string) $transactions, (string) $requests));
+    }
+
+    /** Rebuild the projection row (balance and reserved) from the ledger and the open holds. */
     public function reconcile(Account $account): BalanceSummary
     {
         return DB::transaction(function () use ($account) {
             $row = app(BalancePostingService::class)->lockedBalance($account->id);
 
             $row->balance = $this->ledgerBalance($account);
-            $row->reserved = Money::round((string) Transaction::where('from_account_id', $account->id)
-                ->whereIn('status', ['pending', 'open'])->sum('reserved_amount'));
+            $row->reserved = $this->ledgerReserved($account);
             $row->save();
 
             $negative = Money::lt($row->balance, '0');

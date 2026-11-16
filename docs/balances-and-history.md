@@ -33,6 +33,11 @@ Wallet::accounts()->reconcile($account);   // rebuilds balance (from the ledger)
 Command form, see [Commands](events-and-commands.md): `php artisan wallet:reconcile [--account=ID] [--fix]`. Run it on
 a schedule: any mismatch between cached and ledger balance means something wrote outside the package.
 
+It checks two things per account: the cached **balance** against the transfer ledger, and the cached **reserved** total against the
+holds that are still open (pending authorizations, open scheduled payments, and open [payment requests](payment-requests.md) that
+reserve funds). `Wallet::accounts()->ledgerReserved($account)` gives that expected total. Because `reconcile()` rebuilds
+`reserved` from the open holds, never from zero, repairing an account does not release money that is promised elsewhere.
+
 ## History (statements)
 
 ```php

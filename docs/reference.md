@@ -31,7 +31,7 @@ All services are container singletons; type-hint them for dependency injection i
 ## API index
 
 **AccountService**: `createAccountType(array)`, `resolveType($t)`, `createAccount($owner, $type, $options)`, `findFor($owner, $type)`,
-`systemAccount($type)`, `resolveHolder($holder, AccountType)`, `balance($account)`, `ledgerBalance($account, $asOf)`, `reconcile($account)`.
+`systemAccount($type)`, `resolveHolder($holder, AccountType)`, `balance($account)`, `ledgerBalance($account, $asOf)`, `ledgerReserved($account)`, `reconcile($account)`.
 
 **TransferTypeService**: `create(array)`, `resolve($type)`.
 

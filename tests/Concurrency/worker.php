@@ -8,11 +8,12 @@ $app = require __DIR__.'/boot.php';
 use App\Models\User;
 use Hsemix\AdvancedWallet\Exceptions\InsufficientBalanceException;
 use Hsemix\AdvancedWallet\Exceptions\InvalidTransactionException;
+use Hsemix\AdvancedWallet\Exceptions\PeriodLimitExceededException;
 use Hsemix\AdvancedWallet\Facades\Wallet;
 use Hsemix\AdvancedWallet\Models\MoneyRequest;
 use Hsemix\AdvancedWallet\Models\Transaction;
 
-$out = ['ok' => 0, 'insufficient' => 0, 'replay' => 0, 'deadlock' => 0, 'other' => 0, 'otherMsgs' => []];
+$out = ['ok' => 0, 'insufficient' => 0, 'replay' => 0, 'limit' => 0, 'deadlock' => 0, 'other' => 0, 'otherMsgs' => []];
 $users = User::orderBy('id')->get();
 usleep(200000); // let siblings boot
 for ($i = 0; $i < $n; $i++) {
@@ -41,6 +42,12 @@ for ($i = 0; $i < $n; $i++) {
                 $req = MoneyRequest::where('description', 'REQ-TARGET')->firstOrFail();
                 Wallet::requests()->accept($req, $users[2]);
                 break;
+            case 'limit': // a daily amount cap of 100: every worker pays 70 from U2
+                Wallet::pay(['from' => $users[1], 'to' => $users[2], 'type' => 'wallet.capped', 'amount' => '70']);
+                break;
+            case 'limitcount': // a cap of 3 transfers a day: every worker pays 1 from U2
+                Wallet::pay(['from' => $users[1], 'to' => $users[2], 'type' => 'wallet.counted', 'amount' => '1']);
+                break;
             case 'idem': // same key from every worker
                 $r = Wallet::pay(['from' => $users[2], 'to' => $users[3], 'type' => 'wallet.transfer', 'amount' => '10', 'idempotency_key' => 'same-key-1']);
                 break;
@@ -48,6 +55,8 @@ for ($i = 0; $i < $n; $i++) {
         $out['ok']++;
     } catch (InsufficientBalanceException $e) {
         $out['insufficient']++;
+    } catch (PeriodLimitExceededException $e) {
+        $out['limit']++;
     } catch (InvalidTransactionException $e) {
         $out['replay']++;
     } catch (Throwable $e) {

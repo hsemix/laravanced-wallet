@@ -25,15 +25,26 @@ use Hsemix\AdvancedWallet\Support\Money;
  */
 class LimitGuard
 {
+    public function __construct(private readonly BalancePostingService $posting) {}
+
     /**
      * Full check for a payment about to be booked now.
      *
      * @throws PeriodLimitExceededException a day/week/month limit is used up (temporary)
      * @throws LimitExceededException the amount can never satisfy the type's limits
+     *
+     * A period limit is "read the usage, then decide", which is only safe if nobody else can book a payment
+     * for this account in between. So when the type has one, the payer's balance row is locked first: concurrent
+     * payments by the same account queue up here, and each sees the ones before it. The lock is held until the
+     * surrounding database transaction ends, which is also when the payment becomes visible.
      */
     public function check(TransferType $type, Account $from, string $amount): void
     {
         $this->checkStatic($type, $amount);
+
+        if ($this->hasPeriodLimit($type)) {
+            $this->posting->lockedBalance($from->id);
+        }
 
         $periods = [
             'day' => now()->startOfDay(),
@@ -85,26 +96,50 @@ class LimitGuard
         }
     }
 
+    private function hasPeriodLimit(TransferType $type): bool
+    {
+        foreach (['day', 'week', 'month'] as $name) {
+            if ($type->{"max_amount_per_{$name}"} !== null || $type->{"max_transfers_per_{$name}"} !== null) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /** @return array{0:int, 1:string} [count, sum] of payments by $from of this type since $since */
     private function usage(TransferType $type, Account $from, CarbonInterface $since): array
     {
+        // Locking reads (FOR UPDATE) on purpose: under MySQL's default REPEATABLE READ a plain read uses the
+        // snapshot taken by this transaction's first read, so it would not see a payment committed while we
+        // waited for the balance lock. A locking read always sees the latest committed rows.
+        //
+        // They fetch the rows and add them up here, instead of using count() / sum(): PostgreSQL refuses
+        // FOR UPDATE together with an aggregate function.
+
         // Booked payments that were not charged back (root transfers only, no fees).
         $booked = Transfer::where('from_account_id', $from->id)
             ->where('transfer_type_id', $type->id)
             ->whereNull('parent_id')
             ->whereNull('chargeback_of_id')
             ->whereDoesntHave('chargeback')
-            ->where('created_at', '>=', $since);
+            ->where('created_at', '>=', $since)
+            ->lockForUpdate()
+            ->pluck('amount');
 
         // Pending payments are not booked yet but already count against the limit.
         $pending = Transaction::where('from_account_id', $from->id)
             ->where('transfer_type_id', $type->id)
             ->where('status', TransactionStatus::Pending)
-            ->where('created_at', '>=', $since);
+            ->where('created_at', '>=', $since)
+            ->lockForUpdate()
+            ->pluck('amount');
 
-        return [
-            (clone $booked)->count() + (clone $pending)->count(),
-            Money::add((string) $booked->sum('amount'), (string) $pending->sum('amount')),
-        ];
+        $sum = '0';
+        foreach ($booked->concat($pending) as $amount) {
+            $sum = Money::add($sum, (string) $amount);
+        }
+
+        return [$booked->count() + $pending->count(), $sum];
     }
 }
