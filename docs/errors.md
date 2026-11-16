@@ -20,7 +20,7 @@ try {
 | `PeriodLimitExceededException` | Subclass of the above: a day/week/month amount or count limit is used up **right now** (temporary). Catch it first to distinguish "retry later" from "never allowed". Scheduled installments are deferred on this. |
 | `InvalidAccountException` | Account not found, wrong type for the transfer type, inactive, same account on both sides, missing system account, or a fee whose payer/receiver doesn't match the generated type |
 | `InvalidAccountTypeException` | Unknown account type, bad `kind`, opening a user account on a system type |
-| `InvalidTransferTypeException` | Unknown/ambiguous/disabled type, using a generated type as a payment, scheduling on a type that doesn't allow it, fees nested deeper than 5, invalid fee generated type |
+| `InvalidTransferTypeException` | Unknown/ambiguous/disabled type, using a generated type as a payment, scheduling on a type that doesn't allow it, fees nested deeper than 5, invalid fee generated type, an account fee type that is generated, needs authorization or doesn't end at a system account |
 | `ChargebackNotAllowedException` | Chargeback disabled for the type, window passed, or forced chargebacks not allowed |
 | `UnauthorizedChargebackException` | The chargeback authorizer refused the actor (HTTP 403) |
 | `UnauthorizedRequestActionException` | The actor isn't allowed to accept / reject / cancel a payment request (see [Payment requests](payment-requests.md)) |

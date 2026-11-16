@@ -35,6 +35,7 @@ $treasury = Wallet::accounts()->systemAccount('treasury');   // Account; accepts
 ```php
 $account = $user->openAccount('savings');                      // via HasWallet
 $account = $user->openAccount('savings', ['credit_limit' => 500]);
+$account = $user->openAccount('savings', ['waive_fees' => true]);     // exempt from account fees
 
 // or without the trait
 $account = Wallet::accounts()->createAccount($user, 'savings', ['credit_limit' => 500]);
@@ -68,6 +69,7 @@ Set `active` to `false` (`$account->update(['active' => false])`). Payments to o
 | `owner_type`, `owner_id` | Morph; both null for system accounts |
 | `number` | Generated number or null |
 | `credit_limit` | Overdraft allowance, default 0 |
+| `fees_waived` | Exempt from every [account fee](account-fees.md) (`waive_fees` when opening) |
 | `negative_since` | Set when the balance goes below zero, cleared when it recovers |
 | `active` | |
 

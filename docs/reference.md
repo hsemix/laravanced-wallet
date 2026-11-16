@@ -17,6 +17,7 @@
 Wallet::accounts()      // AccountService
 Wallet::transferTypes() // TransferTypeService
 Wallet::fees()          // TransferFeeService
+Wallet::accountFees()   // AccountFeeService
 Wallet::payments()      // PaymentService
 Wallet::scheduled()     // ScheduledPaymentService
 Wallet::history()       // HistoryService
@@ -36,6 +37,8 @@ All services are container singletons; type-hint them for dependency injection i
 
 **TransferFeeService**: `create(array)`.
 
+**AccountFeeService**: `create(array)`, `exempt($account, $exempt)`, `chargeOpening($account)`, `processDue($on)`.
+
 **PaymentService**: `perform($input)`, `preview($input)`, `authorize($tx, $by)`, `deny($tx, $by, $reason)`, `cancel($tx, $by)`,
 `chargeback($subject, $by, $description, $force)`.
 
@@ -51,9 +54,9 @@ not needed day to day. If you call `BalancePostingService` directly, do so insid
 
 ## Models (`Hsemix\AdvancedWallet\Models`)
 
-`AccountType`, `Account`, `AccountBalance`, `TransferType`, `TransferFee`, `Transaction`, `Transfer`, `Installment`.
+`AccountType`, `Account`, `AccountBalance`, `TransferType`, `TransferFee`, `AccountFee`, `AccountFeeCharge`, `Transaction`, `Transfer`, `Installment`.
 Enums (`Hsemix\AdvancedWallet\Enums`): `AccountKind` (user, system), `TransferKind` (payment, generated),
-`TransactionStatus`, `InstallmentStatus`, `ChargeMode`, `PayerReceiver`, `ScheduleUnit`.
+`TransactionStatus`, `InstallmentStatus`, `ChargeMode`, `PayerReceiver`, `ScheduleUnit`, `AccountFeeTrigger`, `AccountFeeChargeStatus`, `InsufficientFundsPolicy`.
 
 ## Tables
 
@@ -62,10 +65,12 @@ With the default prefix:
 | Table | Purpose |
 |---|---|
 | `wallet_account_types` | Account categories, number generation, system limit type |
-| `wallet_accounts` | Accounts (nullable morph owner), `credit_limit`, `negative_since`, `active` |
+| `wallet_accounts` | Accounts (nullable morph owner), `credit_limit`, `negative_since`, `active`, `fees_waived` |
 | `wallet_account_balances` | One row per account: `balance`, `reserved` (unique `account_id`) |
 | `wallet_transfer_types` | Transfer types and all their rules |
 | `wallet_transfer_fees` | Fee rules |
+| `wallet_account_fees` | [Account fee](account-fees.md) rules (opening / recurring) |
+| `wallet_account_fee_charges` | One row per account, fee and period: the audit trail and the guard against double charging |
 | `wallet_transactions` | Operations; unique `(from_account_id, idempotency_key)`; decision audit (`decided_by`, `decision_reason`) |
 | `wallet_transfers` | The immutable ledger; fee transfers link via `parent_id`; chargebacks via `chargeback_of_id` |
 | `wallet_installments` | Scheduled payment installments |

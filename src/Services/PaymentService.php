@@ -141,7 +141,7 @@ class PaymentService
                 return $transaction->load('transferType');
             }
 
-            $this->record($transaction, $plan);
+            $this->record($transaction, $plan, null, ! $request->allowOverdraft);
 
             PaymentPerformed::dispatch($transaction);
 
@@ -340,11 +340,11 @@ class PaymentService
      *
      * @return Collection<int, Transfer>
      */
-    public function record(Transaction $transaction, PlannedTransfer $plan, ?int $installmentId = null): Collection
+    public function record(Transaction $transaction, PlannedTransfer $plan, ?int $installmentId = null, bool $enforce = true): Collection
     {
         $created = collect();
         $this->persist($plan, $transaction, null, $installmentId, $created);
-        $this->posting->post($created);
+        $this->posting->post($created, $enforce);
 
         return $created;
     }
@@ -373,7 +373,9 @@ class PaymentService
 
         $plan = $this->planner->plan($type, $from, $to, $request->amount);
 
-        $this->assertCanAfford($from, $plan);
+        if (! $request->allowOverdraft) {
+            $this->assertCanAfford($from, $plan);
+        }
 
         return [$type, $from, $to, $plan];
     }

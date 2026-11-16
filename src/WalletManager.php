@@ -6,6 +6,7 @@ namespace Hsemix\AdvancedWallet;
 
 use Hsemix\AdvancedWallet\Models\Account;
 use Hsemix\AdvancedWallet\Models\Transaction;
+use Hsemix\AdvancedWallet\Services\AccountFeeService;
 use Hsemix\AdvancedWallet\Services\AccountService;
 use Hsemix\AdvancedWallet\Services\HistoryService;
 use Hsemix\AdvancedWallet\Services\PaymentRequestService;
@@ -24,6 +25,7 @@ class WalletManager
         private readonly AccountService $accounts,
         private readonly TransferTypeService $transferTypes,
         private readonly TransferFeeService $fees,
+        private readonly AccountFeeService $accountFees,
         private readonly PaymentService $payments,
         private readonly PaymentRequestService $requests,
         private readonly ScheduledPaymentService $scheduled,
@@ -43,6 +45,12 @@ class WalletManager
     public function fees(): TransferFeeService
     {
         return $this->fees;
+    }
+
+    /** Fees charged to an account itself: on opening, or recurring. See docs/account-fees.md. */
+    public function accountFees(): AccountFeeService
+    {
+        return $this->accountFees;
     }
 
     public function payments(): PaymentService

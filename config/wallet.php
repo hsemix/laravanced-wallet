@@ -25,7 +25,7 @@ return [
     'account_number_length' => 6,
 
     /*
-    | Maximum number of open payment requests allowed per payer account (leave null for unlimited). 
+    | Maximum number of open payment requests allowed per payer account (leave null for unlimited).
     | Recommended when using transfer types with reserve_on_payment_request enabled
     */
     'max_open_requests_per_payer' => null,

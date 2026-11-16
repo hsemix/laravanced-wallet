@@ -106,7 +106,10 @@ class AccountService
     /**
      * Open a user account for an owner (any Eloquent model).
      *
-     * @param  array{credit_limit?:int|float|string}  $options
+     * Opening fees configured for the account type are charged here. Pass `waive_fees => true` to exempt the
+     * account from every account fee.
+     *
+     * @param  array{credit_limit?:int|float|string, waive_fees?:bool}  $options
      */
     public function createAccount(Model $owner, AccountType|int|string $type, array $options = []): Account
     {
@@ -128,9 +131,12 @@ class AccountService
                 'number' => $type->generate_account_number ? $this->nextNumber($type) : null,
                 'credit_limit' => Money::round($options['credit_limit'] ?? 0),
                 'active' => true,
+                'fees_waived' => (bool) ($options['waive_fees'] ?? false),
             ]);
 
             AccountBalance::create(['account_id' => $account->id, 'balance' => 0, 'reserved' => 0]);
+
+            app(AccountFeeService::class)->chargeOpening($account);
 
             return $account->setRelation('accountType', $type);
         });
