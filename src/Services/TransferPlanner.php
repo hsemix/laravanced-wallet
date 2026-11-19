@@ -83,12 +83,39 @@ class TransferPlanner
         }
     }
 
+    /**
+     * The account of type $expected that belongs to the same owner as $account. This is how a fee reaches
+     * "the same person's other account", e.g. an agent's commission account when the agent's float account pays.
+     */
+    private function siblingAccount(Account $account, AccountType $expected, TransferFee $fee): Account
+    {
+        $owner = $account->owner;
+
+        if ($owner === null) {
+            throw new InvalidAccountException("Fee {$fee->internal_name}: account {$account->id} has no owner, so it has no {$expected->internal_name} account.");
+        }
+
+        $sibling = $this->accounts->findFor($owner, $expected);
+
+        if ($sibling === null) {
+            throw new InvalidAccountException("Fee {$fee->internal_name}: the owner of account {$account->id} has no {$expected->internal_name} account.");
+        }
+
+        if (! $sibling->active) {
+            throw new InvalidAccountException("Fee {$fee->internal_name}: account {$sibling->id} ({$expected->internal_name}) is inactive.");
+        }
+
+        return $sibling;
+    }
+
     private function resolve(PayerReceiver $role, TransferFee $fee, PlannedTransfer $parent, AccountType $expected, bool $isPayer): Account
     {
         $account = match ($role) {
             PayerReceiver::Source => $parent->from,
             PayerReceiver::Destination => $parent->to,
             PayerReceiver::System => $this->accounts->systemAccount($expected),
+            PayerReceiver::SourceOwner => $this->siblingAccount($parent->from, $expected, $fee),
+            PayerReceiver::DestinationOwner => $this->siblingAccount($parent->to, $expected, $fee),
             PayerReceiver::FixedAccount => Account::with('accountType')->find($isPayer ? $fee->payer_account_id : $fee->receiver_account_id),
         };
 

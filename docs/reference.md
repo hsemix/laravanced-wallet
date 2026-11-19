@@ -56,7 +56,7 @@ not needed day to day. If you call `BalancePostingService` directly, do so insid
 
 `AccountType`, `Account`, `AccountBalance`, `TransferType`, `TransferFee`, `AccountFee`, `AccountFeeCharge`, `Transaction`, `Transfer`, `Installment`.
 Enums (`Hsemix\AdvancedWallet\Enums`): `AccountKind` (user, system), `TransferKind` (payment, generated),
-`TransactionStatus`, `InstallmentStatus`, `ChargeMode`, `PayerReceiver`, `ScheduleUnit`, `AccountFeeTrigger`, `AccountFeeChargeStatus`, `InsufficientFundsPolicy`.
+`TransactionStatus`, `InstallmentStatus`, `ChargeMode`, `PayerReceiver` (source, destination, system, fixed_account, source_owner, destination_owner), `ScheduleUnit`, `AccountFeeTrigger`, `AccountFeeChargeStatus`, `InsufficientFundsPolicy`.
 
 ## Tables
 
