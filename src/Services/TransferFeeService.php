@@ -71,6 +71,14 @@ class TransferFeeService
             $payer = PayerReceiver::Source;
         }
 
+        // An owner role looks up the owner's account of the generated type's account type, so that type must belong to users.
+        if (in_array($payer, [PayerReceiver::SourceOwner, PayerReceiver::DestinationOwner], true) && $generated->fromAccountType->isSystem()) {
+            throw new InvalidParameterException("payer {$payer->value} needs the generated type's from account type to be a user account type.");
+        }
+        if (in_array($receiver, [PayerReceiver::SourceOwner, PayerReceiver::DestinationOwner], true) && $generated->toAccountType->isSystem()) {
+            throw new InvalidParameterException("receiver {$receiver->value} needs the generated type's to account type to be a user account type.");
+        }
+
         if ($payer === PayerReceiver::FixedAccount && empty($data['payer_account_id'])) {
             throw new MissingParameterException('payer_account_id is required for a fixed_account payer.');
         }
