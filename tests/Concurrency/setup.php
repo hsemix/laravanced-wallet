@@ -5,7 +5,11 @@ $app = require __DIR__.'/boot.php';
 use App\Models\User;
 use Hsemix\AdvancedWallet\Facades\Wallet;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schema;
 
+if (getenv('WALLET_TENANT_DB')) {
+    Schema::connection('tenant')->dropAllTables();   // migrate:fresh only wipes the default database
+}
 Artisan::call('migrate:fresh', ['--force' => true]);
 $a = Wallet::accounts();
 $a->createAccountType(['name' => 'Wallet', 'internal_name' => 'wallet', 'kind' => 'user', 'generate_account_number' => true, 'account_number_prefix' => '10']);

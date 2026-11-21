@@ -20,9 +20,9 @@ use Hsemix\AdvancedWallet\Models\Transaction;
 use Hsemix\AdvancedWallet\Models\Transfer;
 use Hsemix\AdvancedWallet\Support\BalanceSummary;
 use Hsemix\AdvancedWallet\Support\Money;
+use Hsemix\AdvancedWallet\Support\WalletDatabase;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 
 class AccountService
 {
@@ -68,7 +68,7 @@ class AccountService
             }
         }
 
-        return DB::transaction(function () use ($data, $kind, $limit, $generate, $prefix) {
+        return WalletDatabase::transaction(function () use ($data, $kind, $limit, $generate, $prefix) {
             $type = AccountType::create([
                 'name' => $data['name'],
                 'internal_name' => $data['internal_name'],
@@ -125,7 +125,7 @@ class AccountService
             throw new DuplicateRecordException("Owner already has a {$type->internal_name} account.");
         }
 
-        return DB::transaction(function () use ($owner, $type, $options) {
+        return WalletDatabase::transaction(function () use ($owner, $type, $options) {
             $account = Account::create([
                 'account_type_id' => $type->id,
                 'owner_type' => $owner->getMorphClass(),
@@ -246,7 +246,7 @@ class AccountService
     /** Rebuild the projection row (balance and reserved) from the ledger and the open holds. */
     public function reconcile(Account $account): BalanceSummary
     {
-        return DB::transaction(function () use ($account) {
+        return WalletDatabase::transaction(function () use ($account) {
             $row = app(BalancePostingService::class)->lockedBalance($account->id);
 
             $row->balance = $this->ledgerBalance($account);
