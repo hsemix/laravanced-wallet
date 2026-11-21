@@ -18,6 +18,7 @@ optionally generating **fees**; every movement is an immutable **transfer** in a
 | [Scheduled payments](scheduled-payments.md) | Installments, recurring, interest, reservation, processing |
 | [Balances & history](balances-and-history.md) | Cached vs ledger balance, as-of, reconcile, statements, totals |
 | [Events & commands](events-and-commands.md) | Events to listen to, artisan commands, scheduler |
+| [Multi-tenancy](multi-tenancy.md) | One database per tenant for SaaS products; settings, callbacks and scheduling per tenant |
 | [Errors](errors.md) | Every exception and when it is thrown |
 | [Reference](reference.md) | Config, models, tables, full API index, limitations |
 | [Testing](testing.md) | Testing your app, running the package suite |

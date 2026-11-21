@@ -23,8 +23,8 @@ use Hsemix\AdvancedWallet\Models\AccountFee;
 use Hsemix\AdvancedWallet\Models\AccountFeeCharge;
 use Hsemix\AdvancedWallet\Support\Money;
 use Hsemix\AdvancedWallet\Support\PaymentRequest;
+use Hsemix\AdvancedWallet\Support\WalletDatabase;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Fees charged to an account itself, not to a payment: once when it opens, or every N days/weeks/months/years.
@@ -250,7 +250,7 @@ class AccountFeeService
     {
         $settled = null;
 
-        $status = DB::transaction(function () use ($charge, &$settled) {
+        $status = WalletDatabase::transaction(function () use ($charge, &$settled) {
             $row = AccountFeeCharge::whereKey($charge->id)->lockForUpdate()->firstOrFail();
 
             if ($row->status !== AccountFeeChargeStatus::Pending) {

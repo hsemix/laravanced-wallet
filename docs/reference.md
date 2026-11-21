@@ -79,6 +79,7 @@ Foreign keys restrict deleting accounts, account types and transfer types that h
 
 ## Limitations
 
+- **One database per tenant, not a shared one.** There is no tenant scoping; see [multi-tenancy](multi-tenancy.md).
 - **Single currency per ledger path.** `currency` is stored on account types but transfers between different currencies are not
   converted or blocked; keep each transfer type within one currency.
 - **Scheduled payments** do not go through authorization, do not retry *failed* installments (installments blocked only by a

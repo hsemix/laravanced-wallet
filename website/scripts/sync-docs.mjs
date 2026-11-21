@@ -18,7 +18,7 @@ const GROUPS = [
   ["Start here", ["overview", "getting-started", "concepts"]],
   ["Ledger setup", ["accounts", "transfer-types", "fees", "account-fees"]],
   ["Payments", ["payments", "authorization", "payment-requests", "chargebacks", "scheduled-payments"]],
-  ["Operating it", ["balances-and-history", "events-and-commands", "errors", "testing"]],
+  ["Operating it", ["balances-and-history", "events-and-commands", "multi-tenancy", "errors", "testing"]],
   ["Reference", ["reference"]],
 ];
 

@@ -24,10 +24,10 @@ use Hsemix\AdvancedWallet\Models\Transfer;
 use Hsemix\AdvancedWallet\Support\Money;
 use Hsemix\AdvancedWallet\Support\PaymentRequest;
 use Hsemix\AdvancedWallet\Support\PlannedTransfer;
+use Hsemix\AdvancedWallet\Support\WalletDatabase;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 class PaymentService
 {
@@ -112,7 +112,7 @@ class PaymentService
 
     private function performOnce(PaymentRequest $request): Transaction
     {
-        return DB::transaction(function () use ($request) {
+        return WalletDatabase::transaction(function () use ($request) {
             [$type, $from, $to, $plan] = $this->prepare($request);
 
             $transaction = Transaction::create([
@@ -184,7 +184,7 @@ class PaymentService
 
     public function authorize(Transaction|int $transaction, ?Model $by = null): Transaction
     {
-        return DB::transaction(function () use ($transaction, $by) {
+        return WalletDatabase::transaction(function () use ($transaction, $by) {
             $transaction = $this->lockPending($transaction);
             $this->releaseHold($transaction);
 
@@ -207,7 +207,7 @@ class PaymentService
 
     public function deny(Transaction|int $transaction, ?Model $by = null, ?string $reason = null): Transaction
     {
-        return DB::transaction(function () use ($transaction, $by, $reason) {
+        return WalletDatabase::transaction(function () use ($transaction, $by, $reason) {
             $transaction = $this->lockPending($transaction);
             $this->releaseHold($transaction);
             $this->decide($transaction, TransactionStatus::Denied, $by, $reason);
@@ -221,7 +221,7 @@ class PaymentService
     /** The payer withdraws a payment that is still awaiting authorization. */
     public function cancel(Transaction|int $transaction, ?Model $by = null): Transaction
     {
-        return DB::transaction(function () use ($transaction, $by) {
+        return WalletDatabase::transaction(function () use ($transaction, $by) {
             $transaction = $this->lockPending($transaction);
             $this->releaseHold($transaction);
             $this->decide($transaction, TransactionStatus::Cancelled, $by);
@@ -255,7 +255,7 @@ class PaymentService
      */
     public function chargeback(Transaction|Transfer|int $subject, ?Model $by = null, ?string $description = null, bool $force = false): Transaction
     {
-        return DB::transaction(function () use ($subject, $by, $description, $force) {
+        return WalletDatabase::transaction(function () use ($subject, $by, $description, $force) {
             if ($subject instanceof Transfer) {
                 if ($subject->parent_id !== null) {
                     throw new InvalidTransactionException('A fee transfer cannot be charged back on its own; charge back its parent transfer.');

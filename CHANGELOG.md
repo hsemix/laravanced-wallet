@@ -10,7 +10,8 @@ All notable changes to `hsemix/laravanced-wallet` will be documented in this fil
 - **Payment requests**: a payee asks, the payer (or someone acting for them) accepts or rejects, locked to transfer types with `allows_payment_requests`. Decisions record who acted and why. Permissions are a pluggable callback, `Wallet::authorizeRequestsUsing()`; the package defines no roles. Optional reservation of the payer's funds (`reserve_on_payment_request`) and a cap of open requests per payer (`max_open_requests_per_payer`). Expired requests are closed by `wallet:process-scheduled`.
 - **Chargeback rules** per transfer type: `allows_chargebacks`, `allows_forced_chargebacks` and a time window (`max_chargeback_time_amount` / `max_chargeback_time_field`), plus `Wallet::authorizeChargebacksUsing()` to decide who may charge back. All optional; defaults keep the previous behaviour.
 - **Fee roles `source_owner` and `destination_owner`**: a fee can now pay, or be paid by, the same owner's account of a different account type. This is what agent commissions need: the bank pays a commission on a cash-in or cash-out into the agent's own commission account, while the customer pays nothing. A missing or inactive account refuses the payment, so a commission is never silently dropped. The existing roles (`source`, `destination`, `system`, `fixed_account`) are unchanged, and no migration is needed.
-- A documentation website built with Astro Starlight from `docs/`, published to GitHub Pages.
+- **Multi-tenancy documentation and tests** for the supported model, one database per tenant: how to wire the connection, create a tenant's ledger, per-tenant settings, permission callbacks in long-lived processes, and per-tenant scheduling. Includes a two-tenant test suite and a tenant mode for the MySQL concurrency harness. A shared database with a tenant column is not supported.
+
 - A concurrency test harness for MySQL (`tests/Concurrency`).
 
 ### Changed
@@ -25,6 +26,8 @@ All notable changes to `hsemix/laravanced-wallet` will be documented in this fil
 
 - **`reconcile()` released the holds of open payment requests.** It rebuilt an account's `reserved` total from pending and scheduled transactions only, so repairing an account (`wallet:reconcile --fix`, or calling `reconcile()` directly) silently dropped the funds an open request had reserved, and the payer could spend them. Both sources of holds are now counted, via the new `AccountService::ledgerReserved()`.
 - **`wallet:reconcile` only checked balances.** It now also compares each account's cached `reserved` with its open holds, reports drift in either, and repairs both with `--fix`.
+
+- **Transactions and row locks were opened on the wrong connection when `wallet.connection` differed from the default.** Every service opened its transaction with `DB::transaction()` (the application's default connection) while the models used `wallet.connection`. With a separate wallet or per-tenant database, wallet writes were therefore not atomic, a failed payment could leave rows behind, and the `FOR UPDATE` locks released as soon as each query finished, silently disabling the protection against overspending, double actions and exceeded limits. On MySQL, 10 workers draining a balance of 100 got 6 payments through instead of 3 and left 7 accounts out of sync with the ledger. Transactions are now opened on the wallet's connection (`WalletDatabase::transaction()`). Installs that use the default connection are unaffected.
 
 ### Removed
 

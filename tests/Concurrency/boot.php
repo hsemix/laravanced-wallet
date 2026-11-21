@@ -21,4 +21,15 @@ require $app_path.'/vendor/autoload.php';
 $app = require $app_path.'/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 
+// Optional tenant mode: keep the host app's tables (users) in the default database but put the wallet in a SECOND
+// database on its own named connection, the way a database-per-tenant app does. Everything the wallet does, including
+// its transactions and row locks, must then happen on that connection.
+//
+//   WALLET_TENANT_DB  name of the wallet's database (must already exist)
+if ($tenant = getenv('WALLET_TENANT_DB')) {
+    $config = config('database.connections.'.config('database.default'));
+    $config['database'] = $tenant;
+    config(['database.connections.tenant' => $config, 'wallet.connection' => 'tenant']);
+}
+
 return $app;

@@ -21,6 +21,11 @@ php tests/Concurrency/verify.php                   # cached balances == ledger, 
 
 The scripts use whatever database the app's `.env` points at, so they run on PostgreSQL too: export `DB_CONNECTION=pgsql DB_HOST=... DB_PORT=... DB_USERNAME=... DB_PASSWORD=...` before running them (environment variables take precedence over `.env`).
 
+**Per-tenant database.** Set `WALLET_TENANT_DB=<another existing database>` for every command (setup, run, verify) to keep the host
+app's tables in the default database and put the wallet in that second one, on its own connection. This is how a
+database-per-tenant app is wired, and it checks that transactions and row locks happen on the wallet's connection. The
+expected results are the same as below.
+
 Re-run `setup.php` between scenarios (the seeded balances are consumed). Expected results:
 
 | scenario     | expected |

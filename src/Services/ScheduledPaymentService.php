@@ -24,9 +24,9 @@ use Hsemix\AdvancedWallet\Models\Transaction;
 use Hsemix\AdvancedWallet\Models\TransferType;
 use Hsemix\AdvancedWallet\Support\Money;
 use Hsemix\AdvancedWallet\Support\PaymentRequest;
+use Hsemix\AdvancedWallet\Support\WalletDatabase;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Scheduled, recurring and interest-bearing payments split into installments.
@@ -96,7 +96,7 @@ class ScheduledPaymentService
             'meta' => $input['meta'] ?? [],
         ]);
 
-        return DB::transaction(function () use ($request, $input, $count, $immediate, $rate, $unit, $first) {
+        return WalletDatabase::transaction(function () use ($request, $input, $count, $immediate, $rate, $unit, $first) {
             $type = $this->transferTypes->resolve($request->type);
 
             if (! $type->enabled || $type->isGenerated() || ! $type->allows_scheduled_payments) {
@@ -199,7 +199,7 @@ class ScheduledPaymentService
     /** Stop a schedule: remaining installments are cancelled and held funds released. */
     public function cancel(Transaction|int $transaction, ?Model $by = null): Transaction
     {
-        return DB::transaction(function () use ($transaction, $by) {
+        return WalletDatabase::transaction(function () use ($transaction, $by) {
             $transaction = Transaction::lockForUpdate()->findOrFail($transaction instanceof Transaction ? $transaction->id : $transaction);
 
             if (! $transaction->scheduled || $transaction->status !== TransactionStatus::Open) {
@@ -227,7 +227,7 @@ class ScheduledPaymentService
 
     private function settle(Installment $installment): void
     {
-        DB::transaction(function () use ($installment) {
+        WalletDatabase::transaction(function () use ($installment) {
             $installment = Installment::lockForUpdate()->find($installment->id);
             $transaction = Transaction::lockForUpdate()->find($installment->transaction_id);
 
@@ -262,7 +262,7 @@ class ScheduledPaymentService
 
     private function fail(Installment $installment, string $reason): void
     {
-        DB::transaction(function () use ($installment, $reason) {
+        WalletDatabase::transaction(function () use ($installment, $reason) {
             $installment = Installment::lockForUpdate()->find($installment->id);
             $transaction = Transaction::lockForUpdate()->find($installment->transaction_id);
 

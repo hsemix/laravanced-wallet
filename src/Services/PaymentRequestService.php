@@ -22,9 +22,9 @@ use Hsemix\AdvancedWallet\Models\Account;
 use Hsemix\AdvancedWallet\Models\MoneyRequest;
 use Hsemix\AdvancedWallet\Support\Money;
 use Hsemix\AdvancedWallet\Support\PaymentRequest as PaymentInput;
+use Hsemix\AdvancedWallet\Support\WalletDatabase;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Payment requests: the payee asks the payer for money; the payer accepts (a
@@ -106,7 +106,7 @@ class PaymentRequestService
 
         $by = $input['by'] ?? null;
 
-        return DB::transaction(function () use ($from, $to, $type, $amount, $input, $expiresAt, $by) {
+        return WalletDatabase::transaction(function () use ($from, $to, $type, $amount, $input, $expiresAt, $by) {
             // Lock the payer's balance row first: serialises the open-request cap and the hold below.
             $this->posting->lockedBalance($from->id);
 
@@ -147,7 +147,7 @@ class PaymentRequestService
      */
     public function accept(MoneyRequest|int $request, ?Model $by = null): MoneyRequest
     {
-        return DB::transaction(function () use ($request, $by) {
+        return WalletDatabase::transaction(function () use ($request, $by) {
             $request = $this->lockOpen($request);
 
             if ($request->isExpired()) {
@@ -180,7 +180,7 @@ class PaymentRequestService
 
     public function reject(MoneyRequest|int $request, ?Model $by = null, ?string $reason = null): MoneyRequest
     {
-        return DB::transaction(function () use ($request, $by, $reason) {
+        return WalletDatabase::transaction(function () use ($request, $by, $reason) {
             $request = $this->lockOpen($request);
             $this->assertMayAct($by, $request, 'reject');
             $this->releaseHold($request);
@@ -195,7 +195,7 @@ class PaymentRequestService
     /** The requester withdraws the request. */
     public function cancel(MoneyRequest|int $request, ?Model $by = null): MoneyRequest
     {
-        return DB::transaction(function () use ($request, $by) {
+        return WalletDatabase::transaction(function () use ($request, $by) {
             $request = $this->lockOpen($request);
             $this->assertMayAct($by, $request, 'cancel');
             $this->releaseHold($request);
@@ -224,7 +224,7 @@ class PaymentRequestService
             ->where('expires_at', '<=', $now)
             ->pluck('id')
             ->each(function ($id) use (&$count, $now) {
-                DB::transaction(function () use ($id, $now, &$count) {
+                WalletDatabase::transaction(function () use ($id, $now, &$count) {
                     $request = MoneyRequest::lockForUpdate()->find($id);
 
                     if (! $request || ! $request->isOpen() || $request->expires_at === null || $request->expires_at->gt($now)) {
