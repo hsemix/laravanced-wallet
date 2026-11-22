@@ -20,10 +20,28 @@ There are two ways to wire that up, depending on how your tenancy tooling works:
 | keeps a named connection for the tenant (e.g. `tenant`) and changes its database | set `wallet.connection` to that name |
 | swaps the application's **default** connection to the tenant | leave `wallet.connection` as `null` |
 
+### Switching tenants: use `Wallet::onConnection()`
+
+If you re-point one named connection at a different database, **purge it**. Laravel caches the open connection by name, so
+changing `database.connections.tenant.database` alone leaves the next query on the previous tenant's database. And if you
+set `wallet.connection` yourself, nothing sets it back, so a queue worker or scheduler run carries one tenant into the next
+job. `Wallet::onConnection()` does both for you: it purges the connection, points the wallet at it, runs your callback, and
+restores the previous connection in a `finally`, even if the callback throws.
+
+Point the connection at the tenant's database first, then enter the helper (it purges on the way in, so it picks that database up):
+
 ```php
-// when the tenant becomes current (for the first way)
-config(['wallet.connection' => 'tenant']);
+config(['database.connections.tenant.database' => $tenant->database]);
+
+$transaction = Wallet::onConnection('tenant', fn () => Wallet::pay([...]));
 ```
+
+- It nests: an inner call restores what the outer one had set.
+- It refuses (`LogicException`) while a transaction is open on either connection, because purging would drop it.
+- It returns whatever your callback returns.
+- Tenancy tools that swap the application's **default** connection don't need it; leave `wallet.connection` as `null`.
+- If you give every tenant its own connection **name**, nothing is cached across tenants and a plain
+  `config(['wallet.connection' => $name])` is enough, but the helper still gives you the restore.
 
 Nothing is cached between tenants: the services are singletons, but they hold no data, and every setting is read from config
 at the moment it is used.
@@ -36,16 +54,15 @@ tenant's database.
 
 ```php
 config(['wallet.connection' => 'tenant']);                       // the tenant's connection, already pointing at its database
-Artisan::call('migrate', ['--database' => 'tenant', '--force' => true]);
+Artisan::call('migrate', ['--database' => 'tenant', '--force' => true]);   // see "Migrations" below if run_migrations is false
 
 // then seed the tenant's ledger
 Wallet::accounts()->createAccountType([...]);
 Wallet::transferTypes()->create([...]);
 ```
 
-Or publish the migrations (`php artisan vendor:publish --tag=wallet-migrations`) into the folder your tenancy package runs
-for each tenant. The migrations read `wallet.connection` themselves, so make sure it is set (or null, for the second way)
-while they run.
+The migrations read `wallet.connection` themselves, so make sure it is set (or null, for the second way) while they run.
+Keep the wallet tables **off your central database**: see [Migrations](#migrations).
 
 Two tenants may use the same internal names (`wallet`, `wallet.transfer`), the same account numbers and even the same
 idempotency keys: they are in different databases.
@@ -89,21 +106,99 @@ current connection only. Run them once per tenant:
 ```php
 Schedule::call(function () {
     Tenant::all()->each(function ($tenant) {
-        $tenant->makeCurrent();                                   // however your tenancy tooling does it
-        Artisan::call('wallet:process-scheduled');
-        Artisan::call('wallet:reconcile');
+        config(['database.connections.tenant.database' => $tenant->database]);
+
+        Wallet::onConnection('tenant', function () {          // purges, switches, and restores afterwards
+            Artisan::call('wallet:process-scheduled');
+            Artisan::call('wallet:reconcile');
+        });
     });
 })->daily();
 ```
 
-Do the same for queued listeners of the wallet's [events](events-and-commands.md): the job must run with the right tenant
-current, or the model it carries will be looked up in the wrong database.
+Because the helper restores the connection, one tenant's run can never leak into the next, or into whatever the scheduler does
+afterwards.
+
+## Events, listeners and queued jobs
+
+**After commit.** Every wallet event implements `ShouldDispatchAfterCommit`: it fires only once the transaction on the wallet's
+connection has committed (`TenantDatabasesTest` asserts the transaction level is 0 inside the listener). A queued listener
+can therefore never start before the payment exists. If you call `Wallet::pay()` inside a transaction
+of your own, the events wait for the outermost commit, as they should.
+
+**The worker must be on the right tenant.** A queued listener or job that carries a wallet model is serialised with the
+model's *connection name* and id, and the worker looks it up again on whatever that connection points at *when the job runs*.
+If your connection name is the same for every tenant (`tenant`), a worker that picks up tenant B's job while still on tenant
+A's database will load the wrong row, or none. So make the tenant part of the job and set it before the job runs.
+
+With a tenancy package, use its queue support rather than doing this by hand. For example
+[stancl/tenancy](https://tenancyforlaravel.com) ships `QueueTenancyBootstrapper` (enable it in `config/tenancy.php`): it stamps
+the current tenant on every job you dispatch and initialises that tenant before the job runs, and it works for queued listeners
+too. [spatie/laravel-multitenancy](https://spatie.be/docs/laravel-multitenancy) does the same with the `TenantAware` interface
+(or `queues_are_tenant_aware_by_default`). Check each package's current docs for the exact setting.
+
+Without one, carry the tenant yourself and enter it with `Wallet::onConnection()`:
+
+```php
+class NotifyPayee implements ShouldQueue
+{
+    use Queueable;
+
+    public function __construct(public string $tenantDatabase, public int $transactionId) {}
+
+    public function handle(): void
+    {
+        config(['database.connections.tenant.database' => $this->tenantDatabase]);
+
+        Wallet::onConnection('tenant', function () {
+            $tx = Transaction::findOrFail($this->transactionId);   // looked up on the right database
+            // ...
+        });
+    }
+}
+
+// the listener, registered once, hands over the ids rather than the model
+Event::listen(PaymentPerformed::class, fn (PaymentPerformed $e) => NotifyPayee::dispatch(
+    Tenant::current()->database,
+    $e->transaction->id,
+));
+```
+
+Passing the id (not the model) means the job never depends on which database was current when it was serialised.
+
+## Migrations
+
+By default the package registers its migrations, so `php artisan migrate` creates the wallet tables on the application's
+default database. With a database per tenant that is wrong: the central database should hold only your tenants, domains and
+plans. Turn it off:
+
+```php
+// config/wallet.php
+'run_migrations' => false,
+```
+
+Then migrate each tenant's database yourself. Either publish them
+(`php artisan vendor:publish --tag=wallet-migrations`) into the folder your tenancy tooling migrates per tenant (e.g.
+`database/migrations/tenant` for stancl/tenancy), or run them once per tenant with the connection pointed at that tenant:
+
+```bash
+php artisan migrate --database=tenant --path=vendor/hsemix/laravanced-wallet/database/migrations
+```
+
+The migrations read `wallet.connection`, so they create the tables on the wallet's connection. If you publish them, publish
+once and keep them out of the central migrations folder.
 
 ## Owners
 
 An account's owner is a polymorphic reference (`owner_type`, `owner_id`) with no foreign key, so your `User` model can live in
 the tenant's own database or in a central one. If it is central, remember that an owner id only means something together with
 the tenant whose wallet holds the account.
+
+**A central owner needs a pinned connection.** When the wallet is on a tenant connection and your `User` is in the central
+database, `$account->owner` (and `with('owner')`) is loaded on the *account's* connection unless the owner model names its
+own. Laravel gives a polymorphic relation's model the parent's connection when it declares none, so the lookup would hit the
+tenant database and fail with "table users not found". Give the central model `protected $connection = 'central';` (or
+whatever your central connection is called).
 
 ## What this does not cover
 

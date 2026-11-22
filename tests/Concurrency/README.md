@@ -26,6 +26,10 @@ app's tables in the default database and put the wallet in that second one, on i
 database-per-tenant app is wired, and it checks that transactions and row locks happen on the wallet's connection. The
 expected results are the same as below.
 
+**All at once.** `php tests/Concurrency/check.php` runs every scenario (setup, workers, verify) and asserts the results below,
+exiting non-zero on any miss. It is what CI runs (`.github/workflows/concurrency.yml`, MySQL 8, both modes);
+`tests/Concurrency/make-app.sh <dir>` builds the throwaway host app that job uses, and works locally too.
+
 Re-run `setup.php` between scenarios (the seeded balances are consumed). Expected results:
 
 | scenario     | expected |

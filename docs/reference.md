@@ -9,6 +9,7 @@
 | `connection` | `null` | Database connection for the package (null = app default). |
 | `account_number_length` | `6` | Zero-padded width of the generated number after the type's prefix. |
 | `max_open_requests_per_payer` | `null` | Cap on open payment requests per payer account (null = unlimited). |
+| `run_migrations` | `true` | Let `php artisan migrate` run the package's migrations. Set `false` for database-per-tenant, [see multi-tenancy](multi-tenancy.md#migrations). |
 | `commands` | `true` | Register the artisan commands. |
 
 ## Entry points

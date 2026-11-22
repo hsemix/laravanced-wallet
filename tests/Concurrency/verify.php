@@ -31,6 +31,6 @@ foreach (['capped' => 'amount', 'counted' => 'count'] as $name => $what) {
         .' total (limit: '.($what === 'amount' ? Money::round($type->max_amount_per_day) : $type->max_transfers_per_day.' transfers').")\n";
 }
 echo 'transactions: '.Transaction::count().' transfers: '.Transfer::count()."\n";
-foreach (Account::whereHas('accountType', fn ($q) => $q->where('internal_name', 'wallet'))->with('owner')->get() as $a) {
+foreach (Account::whereHas('accountType', fn ($q) => $q->where('internal_name', 'wallet'))->get() as $a) {
     echo "  acct {$a->id}: ".Wallet::accounts()->balance($a)->balance."\n";
 }

@@ -31,6 +31,12 @@ return [
     'max_open_requests_per_payer' => null,
 
     /*
+    | Let `php artisan migrate` run the package's migrations. Set to false when each tenant has its own database
+    | and the central database must not get wallet tables; migrate the tenants' databases instead.
+    */
+    'run_migrations' => true,
+
+    /*
     | Register the wallet:process-scheduled / wallet:reconcile console commands.
     */
     'commands' => true,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hsemix\AdvancedWallet;
 
+use Closure;
 use Hsemix\AdvancedWallet\Models\Account;
 use Hsemix\AdvancedWallet\Models\Transaction;
 use Hsemix\AdvancedWallet\Services\AccountFeeService;
@@ -15,6 +16,7 @@ use Hsemix\AdvancedWallet\Services\ScheduledPaymentService;
 use Hsemix\AdvancedWallet\Services\TransferFeeService;
 use Hsemix\AdvancedWallet\Services\TransferTypeService;
 use Hsemix\AdvancedWallet\Support\BalanceSummary;
+use Hsemix\AdvancedWallet\Support\WalletDatabase;
 
 /**
  * Entry point behind the Wallet facade.
@@ -31,6 +33,20 @@ class WalletManager
         private readonly ScheduledPaymentService $scheduled,
         private readonly HistoryService $history,
     ) {}
+
+    /**
+     * Run $callback with the wallet on another connection (e.g. a tenant's), then restore the previous one.
+     * Purges the connection first, so a re-pointed name never serves a stale database. See docs/multi-tenancy.md.
+     *
+     * @template TReturn
+     *
+     * @param  Closure(): TReturn  $callback
+     * @return TReturn
+     */
+    public function onConnection(string $connection, Closure $callback): mixed
+    {
+        return WalletDatabase::using($connection, $callback);
+    }
 
     public function accounts(): AccountService
     {
