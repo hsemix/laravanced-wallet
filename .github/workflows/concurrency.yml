@@ -1,0 +1,78 @@
+name: concurrency
+
+# The only check that the row locking really works: PHPUnit runs on single-process SQLite, so it cannot race anything.
+# Builds a throwaway Laravel app around this checkout and runs the parallel-worker harness against a real MySQL,
+# once with the wallet on the default connection and once on a separate "tenant" connection.
+
+on:
+  push:
+    paths:
+      - 'src/**'
+      - 'database/**'
+      - 'tests/Concurrency/**'
+      - '.github/workflows/concurrency.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'database/**'
+      - 'tests/Concurrency/**'
+      - '.github/workflows/concurrency.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mysql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    name: MySQL 8 - row locking (default connection and tenant connection)
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: secret
+          MYSQL_DATABASE: wallet_concurrency
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -psecret"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USERNAME: root
+      DB_PASSWORD: secret
+      DB_DATABASE: wallet_concurrency
+      WALLET_APP_PATH: ${{ github.workspace }}/../wallet-host-app
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_mysql, bcmath, intl, fileinfo
+          coverage: none
+
+      - name: Build the host app
+        run: tests/Concurrency/make-app.sh "$WALLET_APP_PATH"
+
+      - name: Create the tenant database
+        run: mysql -h 127.0.0.1 -uroot -psecret -e "CREATE DATABASE wallet_tenant"
+
+      - name: Wallet on the default connection
+        run: php tests/Concurrency/check.php
+
+      - name: Wallet on a separate tenant connection
+        run: php tests/Concurrency/check.php
+        env:
+          WALLET_TENANT_DB: wallet_tenant

@@ -40,8 +40,7 @@ class WalletServiceProvider extends PackageServiceProvider
                 '2026_01_05_000000_add_reservation_to_wallet_payment_requests',
                 '2026_01_06_000000_add_chargeback_rules_to_wallet_transfer_types',
                 '2026_01_07_000000_create_wallet_account_fees',
-            ])
-            ->runsMigrations();
+            ]);
     }
 
     public function packageRegistered(): void
@@ -68,6 +67,12 @@ class WalletServiceProvider extends PackageServiceProvider
 
     public function packageBooted(): void
     {
+        // Off for database-per-tenant apps: `php artisan migrate` on the central database must not create the wallet
+        // tables there. Publish the migrations into the tenants' migration path instead (docs/multi-tenancy.md).
+        if (config('wallet.run_migrations', true)) {
+            $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+        }
+
         if ($this->app->runningInConsole() && config('wallet.commands', true)) {
             $this->commands([ProcessScheduledPaymentsCommand::class, ReconcileBalancesCommand::class]);
         }

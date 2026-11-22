@@ -12,6 +12,7 @@ use Hsemix\AdvancedWallet\Models\Account;
 use Hsemix\AdvancedWallet\Models\AccountType;
 use Hsemix\AdvancedWallet\Models\Transaction;
 use Hsemix\AdvancedWallet\Models\Transfer;
+use Hsemix\AdvancedWallet\Support\WalletDatabase;
 use Hsemix\AdvancedWallet\Tests\TestCase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -89,19 +90,108 @@ class TenantDatabasesTest extends TestCase
         }
     }
 
-    public function test_events_still_fire_after_commit_on_the_tenant_connection(): void
+    public function test_events_are_held_until_the_tenant_connection_has_committed(): void
     {
         $this->tenant('tenant_a');
         [$ann] = $this->funded('Ann', 100);
         [$bob] = $this->funded('Bob');
-        $fired = 0;
-        Event::listen(PaymentPerformed::class, function () use (&$fired) {
-            $fired++;
+        $levels = [];
+        // A queued listener could start the moment it is dispatched: it must find the payment already committed.
+        Event::listen(PaymentPerformed::class, function () use (&$levels) {
+            $levels[] = WalletDatabase::connection()->transactionLevel();
         });
 
         $ann->payTo($bob, 'wallet.transfer', 10);
 
-        $this->assertSame(1, $fired);
+        $this->assertSame([0], $levels);
+    }
+
+    /** @return array{0: string, 1: string} two sqlite files, each a migrated tenant ledger */
+    private function tenantFiles(): array
+    {
+        $files = [];
+        foreach (['one', 'two'] as $name) {
+            $file = tempnam(sys_get_temp_dir(), "wallet-{$name}-");
+            $files[] = $file;
+            config(['database.connections.tenant' => ['driver' => 'sqlite', 'database' => $file, 'prefix' => '']]);
+            Wallet::onConnection('tenant', function () {
+                $this->artisan('migrate', ['--database' => 'tenant'])->run();
+                $this->bootstrapLedger();
+            });
+        }
+        $this->beforeApplicationDestroyed(function () use ($files) {
+            DB::purge('tenant');
+            array_map('unlink', $files);
+        });
+
+        return $files;
+    }
+
+    private function pointTenantAt(string $file): void
+    {
+        config(['database.connections.tenant.database' => $file]);
+    }
+
+    public function test_re_pointing_one_named_connection_leaks_without_a_purge_and_not_with_the_helper(): void
+    {
+        [$one, $two] = $this->tenantFiles();
+        $db = fn () => DB::connection('tenant')->getDatabaseName();
+
+        // The hazard: the open connection is cached by name, so changing the config alone changes nothing.
+        $this->pointTenantAt($one);
+        DB::purge('tenant');
+        $this->assertSame($one, $db());
+        $this->pointTenantAt($two);
+        $this->assertSame($one, $db(), 'expected the cached connection to still be on the previous tenant');
+
+        // The helper purges, so each switch really lands on the other database.
+        $seen = [];
+        foreach ([$two, $one, $two] as $file) {
+            $this->pointTenantAt($file);
+            $seen[] = Wallet::onConnection('tenant', fn () => $db());
+        }
+        $this->assertSame([$two, $one, $two], $seen);
+    }
+
+    public function test_on_connection_restores_the_previous_connection_even_when_the_callback_throws(): void
+    {
+        $this->tenantFiles();
+        config(['wallet.connection' => 'testing']);
+
+        try {
+            Wallet::onConnection('tenant', function () {
+                $this->assertSame('tenant', config('wallet.connection'));
+                throw new \RuntimeException('boom');
+            });
+            $this->fail('the exception was swallowed');
+        } catch (\RuntimeException) {
+        }
+
+        $this->assertSame('testing', config('wallet.connection'));
+    }
+
+    public function test_on_connection_nests_and_returns_the_callbacks_value(): void
+    {
+        $this->tenantFiles();
+        config(['database.connections.other' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']]);
+
+        $result = Wallet::onConnection('tenant', function () {
+            $inner = Wallet::onConnection('other', fn () => config('wallet.connection'));
+
+            return [$inner, config('wallet.connection')];
+        });
+
+        $this->assertSame(['other', 'tenant'], $result);
+        $this->assertNull(config('wallet.connection'));
+    }
+
+    public function test_on_connection_refuses_to_switch_inside_a_transaction(): void
+    {
+        $this->tenantFiles();
+        config(['wallet.connection' => 'testing']);
+
+        $this->expectException(\LogicException::class);
+        DB::connection('testing')->transaction(fn () => Wallet::onConnection('tenant', fn () => null));
     }
 
     public function test_tenants_do_not_see_each_others_data(): void

@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static \Hsemix\AdvancedWallet\Services\ScheduledPaymentService scheduled()
  * @method static \Hsemix\AdvancedWallet\Services\HistoryService history()
  * @method static \Hsemix\AdvancedWallet\Models\Transaction pay(array $payment)
+ * @method static mixed onConnection(string $connection, \Closure $callback)
  * @method static array preview(array $payment)
  * @method static \Hsemix\AdvancedWallet\Support\BalanceSummary balance(\Hsemix\AdvancedWallet\Models\Account $account)
  *
